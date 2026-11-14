@@ -153,27 +153,28 @@ def collect_tasks(
         if candidate:
             exclude.add(os.path.normcase(os.path.abspath(expand_path(str(candidate)))))
 
-    # 输出放在源目录内部时，递归扫描必须跳过这些输出目录，否则会把自己的产物再放大一遍
-    if str(out_cfg.get("dir_base") or "inside") == "inside":
-        scales = {int(cfg.get("default", "scale", 1) or 1)}
-        for rule in cfg.rules:
-            if rule.get("scale") is not None:
-                try:
-                    scales.add(int(rule["scale"]))
-                except (TypeError, ValueError):
-                    pass
-        for raw in inputs:
-            root = Path(expand_path(raw))
-            if not root.is_dir():
-                continue
-            for scale in scales:
-                dirname = render(
-                    str(out_cfg.get("dir_template") or "{name}{suffix}"),
-                    name=root.name,
-                    suffix=suffix_text(out_cfg, scale),
-                    scale=scale,
-                )
-                exclude.add(os.path.normcase(os.path.abspath(str(root / dirname))))
+    # 递归扫描时跳过自己的输出目录，否则会把自己的产物再放大一遍。
+    # 两种模式都算上：parent 在与源目录同级，inside 在源目录内部。
+    scales = {int(cfg.get("default", "scale", 1) or 1)}
+    for rule in cfg.rules:
+        if rule.get("scale") is not None:
+            try:
+                scales.add(int(rule["scale"]))
+            except (TypeError, ValueError):
+                pass
+    for raw in inputs:
+        root = Path(expand_path(raw))
+        if not root.is_dir():
+            continue
+        for scale in scales:
+            dirname = render(
+                str(out_cfg.get("dir_template") or "{name}{suffix}"),
+                name=root.name,
+                suffix=suffix_text(out_cfg, scale),
+                scale=scale,
+            )
+            for base in (root, root.parent):
+                exclude.add(os.path.normcase(os.path.abspath(str(base / dirname))))
 
     seen: set[str] = set()
     for src, dir_mode, root in iter_inputs(inputs, recursive, exclude):
@@ -223,9 +224,9 @@ def collect_tasks(
 
         task = Task(src=src, dst=dst, opts=opts, rule_index=rule_index, backend=task_backend)
 
-        # 1) 增量：state 说已完成且源文件没变 → 直接跳过
+        # 1) 增量：state 说已完成且源文件没变、输出位置也没变 → 直接跳过
         if state is not None and state.enabled and not force:
-            done, why = state.is_done(src, opts, task_backend.name, verify_hash)
+            done, why = state.is_done(src, opts, task_backend.name, verify_hash, dst=dst)
             if done:
                 task.status, task.reason = "done", why
                 tasks.append(task)

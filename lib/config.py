@@ -47,8 +47,8 @@ DEFAULTS: dict = {
         "suffix": "_x{scale}",
         "name_template": "{stem}{suffix}",
         "dir_template": "{name}{suffix}",
-        # inside = 输出到源目录内部的子目录（默认）；parent = 与源目录同级
-        "dir_base": "inside",
+        # parent = 与源目录同级（默认）；inside = 放进源目录内部当子目录
+        "dir_base": "parent",
         "on_exists": "skip",
         "recursive": False,
         "jobs": 1,
@@ -156,6 +156,12 @@ class Config:
         jobs = self.get("output", "jobs", 1)
         if not isinstance(jobs, int) or jobs < 1:
             problems.append(("error", f"output.jobs = {jobs!r}，必须是 >= 1 的整数"))
+
+        dir_base = self.get("output", "dir_base", "parent")
+        if dir_base not in ("parent", "inside"):
+            problems.append(
+                ("error", f"output.dir_base = {dir_base!r}，只支持 parent / inside")
+            )
 
         if backend is not None:
             ok, msg = backend.available()

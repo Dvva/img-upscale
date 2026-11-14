@@ -113,18 +113,18 @@ def test_naming():
     )
     check("单文件同目录", str(p) == r"D:\pics\a_x2.png", p)
 
-    # 目录输入（默认放在源目录内部）
+    # 目录输入（默认与源目录同级）
     p = build_output(
         Path(r"D:\pics\set\a.png"), Path(r"D:\pics\set"), True, out_cfg, None, 2, "png"
     )
-    check("目录输入放在源目录内部", str(p) == r"D:\pics\set\set_x2\a_x2.png", p)
+    check("目录输入默认与源目录同级", str(p) == r"D:\pics\set_x2\a_x2.png", p)
 
-    # 目录输入（改成与源目录同级）
+    # 目录输入（改成放进源目录内部）
     p = build_output(
         Path(r"D:\pics\set\a.png"), Path(r"D:\pics\set"), True,
-        {**out_cfg, "dir_base": "parent"}, None, 2, "png",
+        {**out_cfg, "dir_base": "inside"}, None, 2, "png",
     )
-    check("dir_base=parent 时同级", str(p) == r"D:\pics\set_x2\a_x2.png", p)
+    check("dir_base=inside 时放源目录内部", str(p) == r"D:\pics\set\set_x2\a_x2.png", p)
 
     # 指定 -o
     p = build_output(
@@ -200,7 +200,8 @@ def test_real_dir():
     check("默认走 1 倍", all(t.opts.scale == 1 for t in tasks))
     if tasks:
         first = tasks[0]
-        check("输出目录在源目录内部", "_x1" in str(first.dst) and str(first.src.parent) in str(first.dst),
+        check("输出目录与源目录同级", first.dst.parent.parent == first.src.parent
+              and first.dst.parent.name.endswith("_x1"),
               first.dst)
         check("输出文件名带 _x1", first.dst.stem.endswith("_x1"), first.dst.name)
         check("输出不与源同路径", first.dst != first.src)
@@ -273,6 +274,12 @@ def test_state():
         st2 = StateStore(state_path)
         check("记录能持久化", len(st2) == 1, len(st2))
         check("重载后正确失效（输出不存在）", not st2.is_done(src, opts1, "realcugan")[0])
+
+        # 输出位置变了（换 -o / 换 dir_base）必须重做，不能误判成已完成
+        out.write_bytes(b"y" * 200)
+        check("输出路径一致时算完成", st2.is_done(src, opts1, "realcugan", dst=out)[0])
+        other = tmpdir / "elsewhere" / "a_x1.png"
+        check("输出位置变了要重做", not st2.is_done(src, opts1, "realcugan", dst=other)[0])
 
         st2.clear()
         check("清空后为空", len(st2) == 0)
