@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+
+# 实际生效的配置不进仓库，只留 config.example.toml
+config.toml
+config.local.toml
+
+# 测试产物
+tests/out/
+*.out.png
+
+# 编辑器
+.vscode/
+.idea/

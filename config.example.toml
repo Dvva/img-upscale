@@ -1,0 +1,148 @@
+# ============================================================================
+# img-upscale 配置模板
+# 复制为 ~/.config/img-upscale.toml 后修改（或用 --config 指定路径）。
+# 本文件里的值就是内置默认值，可以只保留你要改的部分。
+#
+# 优先级（高 → 低）：命令行参数 > 环境变量 > 本文件 > 内置默认值
+# 未知键会被忽略，老配置不会因为新增键而失效。
+# ============================================================================
+
+# ---------------------------------------------------------------- 引擎
+[engine]
+# 用哪个放大实现。可选：realcugan / realesrgan / waifu2x / custom
+# 新增引擎见 lib/backends/，一个引擎一个文件，注册表在 lib/backends/__init__.py
+#
+# 【本机实测结论（2026-11-14，RX 7800 XT）】
+#   waifu2x    ✔ 正好支持 1 倍与 2 倍，1 倍时只降噪重绘、尺寸不变 → 默认
+#   realcugan  ✔ 二次元效果最好，但模型只有 2/3/4 倍，没有 1 倍 → 放大首选
+#   realesrgan ✘ 2022 版 tile 分块在此卡上错位，不分块又写不出完整图，不可用
+#
+# 默认 scale=1（只降噪重绘），所以默认引擎用 waifu2x；
+# 要放大请加 -s 2 并建议同时 --engine realcugan。
+backend = "waifu2x"
+
+# Real-CUGAN（B 站二次元模型，降噪分档，对 JPG 噪点最干净；放大 2/3/4 倍首选）
+realcugan_bin = "D:\\__\\realcugan-ncnn-vulkan\\realcugan-ncnn-vulkan.exe"
+# 模型目录三选一：
+#   models-se    标准版，速度快（默认）
+#   models-pro   专业版，细节多但慢
+#   models-nose  无降噪版，适合本来就很干净的图
+realcugan_models = "D:\\__\\realcugan-ncnn-vulkan\\models-se"
+
+# waifu2x（唯一支持 1 倍的：1 倍时只降噪重绘、尺寸不变）
+waifu2x_bin = "D:\\__\\waifu2x-ncnn-vulkan\\waifu2x-ncnn-vulkan.exe"
+waifu2x_models = "D:\\__\\waifu2x-ncnn-vulkan\\models-cunet"
+
+# Real-ESRGAN（通用/照片更强，但本机此版本不可用，仅留作换驱动后的备选）
+realesrgan_bin = "D:\\__\\realesrgan-ncnn-vulkan\\realesrgan-ncnn-vulkan.exe"
+realesrgan_models = "D:\\__\\realesrgan-ncnn-vulkan\\models"
+
+gpu_id = 0             # 多显卡时选哪块，0 通常是主卡
+thread = "1:2:2"       # 加载:处理:保存 线程数，通常不用改
+tta = false            # TTA 增强，质量略升但慢 8 倍左右
+
+# 自定义引擎：把任意命令行程序接进来（backend = "custom" 时生效）
+# 可用占位符：{input} {output} {scale} {model} {tile} {gpu} {noise} {format} {thread}
+[engine.custom]
+bin = ""
+args = ["-i", "{input}", "-o", "{output}", "-s", "{scale}"]
+
+# ---------------------------------------------------------------- 硬件记录
+# 纯记录，脚本不读；换机器或换驱动时对照用，也方便日后排查参数。
+[hardware]
+gpu = "AMD Radeon RX 7800 XT"
+vram_gb = 16
+driver = ""
+note = "realesrgan 2022 版 tile 分块在此卡上错位，已弃用；realcugan/waifu2x 正常"
+
+# ---------------------------------------------------------------- 默认参数
+[default]
+# 倍数。1 = 只做 AI 降噪重绘、尺寸不变；2/3/4 = 真的放大。
+# 支持情况：waifu2x 1/2；realcugan 2/3/4；realesrgan 2/3/4（本机不可用）
+scale = 1
+
+# 降噪档位，realcugan 与 waifu2x 使用：
+#   -1 保留最多细节（默认）
+#    0 轻微
+#    1 中等
+#    2 较强
+#    3 最强（噪点多的截图/压缩图用）
+noise = -1
+
+# 模型名，只有 realesrgan 会用到（realcugan/waifu2x 靠模型目录区分）
+#   realesrgan-x4plus-anime  二次元专用
+#   realesrgan-x4plus        通用
+#   realesr-animevideov3     动画视频帧，最快
+model = ""
+
+tile = 0               # 0=自动；显存不足时改 256 / 128
+format = "png"         # 输出格式 png / jpg / webp
+
+# ---------------------------------------------------------------- 输出
+[output]
+# 统一输出目录。留空 = 按下面模板自动放
+dir = ""
+
+# 输出名字后缀模板，{scale} 会替换成实际倍数 → _x1 / _x2
+suffix = "_x{scale}"
+
+# 文件名模板，可用 {stem}（原文件名）{suffix}
+#   默认 a.png -> a_x1.png；想去掉下划线就改成 "{stem}x{scale}"
+name_template = "{stem}{suffix}"
+
+# 目录输入时的输出目录名模板，可用 {name}（源目录名）{suffix}
+#   默认 1x-人物 -> 同级 1x-人物_x1\
+dir_template = "{name}{suffix}"
+
+# 输出已存在时：skip 跳过 / overwrite 覆盖 / rename 自动加 -2 后缀
+# 注意：有完成记录时优先按记录判断，这里只管「没有记录但文件已存在」的情况
+on_exists = "skip"
+
+# 目录输入时是否递归子目录
+recursive = false
+
+# 并发任务数（引擎是独立进程，2-4 一般有加速；显存吃紧就保持 1）
+jobs = 1
+
+# ---------------------------------------------------------------- 增量与续跑
+# 完成记录：处理成功一张就记一条（源文件大小 + 修改时间 + 参数 + 输出路径）。
+# 下次跑同一批图，记录里已完成且源文件没变的直接跳过。
+# 中途 Ctrl+C 或断电也不会重复处理已完成的部分。
+use_state = true
+state_file = "~/.config/img-upscale.state.json"
+
+# true = 对「记录为完成」的文件再算一次 SHA-256 复核，绝对精确但每次要全量读源图
+verify_hash = false
+
+# ---------------------------------------------------------------- 规则
+# 针对指定目录 / 文件单独设参数。匹配到的文件用这一节的参数，其余走 [default]。
+#
+# 匹配语义：
+#   dir   匹配文件所在目录。纯路径含所有子目录；支持 * 单层、** 跨层通配。
+#   match 匹配文件名，支持通配符，也可以写成数组。
+#   两者都写则须同时命中。多条规则命中时，**写在后面的优先**。
+#   命令行显式给的 -s / -m / -t / --noise 仍会覆盖这里的值。
+#
+# 可写字段：scale / model / tile / noise / tta / thread / gpu / format / engine
+#
+# 示例：壁纸放大 2 倍，噪点少的用低降噪
+# [[rule]]
+# dir = "G:/媒体/图片/__AI 放大/1x-壁纸"
+# match = "*.png"
+# scale = 2
+# noise = 0
+#
+# 示例：人物图保持 1 倍只做重绘，只处理 2025 年之后命名的文件
+# [[rule]]
+# dir = "G:/媒体/图片/__AI 放大/1x-人物"
+# match = ["*2025*.png", "*2026*.png"]
+# scale = 1
+# noise = 1
+#
+# 示例：某个子目录换引擎（噪点多的游戏截图走 waifu2x 的强降噪）
+# [[rule]]
+# dir = "G:/媒体/图片/__AI 放大/新建文件夹/**"
+# match = "*.png"
+# engine = "waifu2x"
+# noise = 3
+# scale = 2
