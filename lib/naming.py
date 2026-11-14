@@ -1,11 +1,14 @@
 """输出路径与命名。
 
 默认规则（都可在配置里改）：
-  单文件  a.png                  -> 同目录  a_x2.png
-  目录    ...\\1x-壁纸\\a.png     -> 同级    ...\\1x-壁纸_x2\\a_x2.png
-  指定 -o D:\\out                 -> D:\\out\\a_x2.png（目录输入时保留子目录结构）
+  单文件  a.png                  -> 同目录  a_x1.png
+  目录    ...\\原图-人物\\a.png   -> 源目录内部 ...\\原图-人物\\原图-人物_x1\\a_x1.png
+  指定 -o D:\\out                 -> D:\\out\\a_x1.png（目录输入时保留子目录结构）
 
-其中 _x2 里的 2 是实际倍数，由 output.suffix = "_x{scale}" 渲染得到；
+目录模式默认放在源文件夹内部（output.dir_base = "inside"）；
+想改成与源目录同级（...\\原图-人物_x1\\），把 dir_base 改成 "parent"。
+
+其中 _x1 里的 1 是实际倍数，由 output.suffix = "_x{scale}" 渲染得到；
 想让名字固定带 _x1，把 suffix 改成 "_x1" 或运行时加 --suffix _x1。
 """
 
@@ -63,7 +66,9 @@ def build_output(
             suffix=suffix,
             scale=scale,
         )
-        parent = src_root.parent / dirname
+        # inside = 放在源目录内部当子目录（默认）；parent = 与源目录同级
+        base = src_root if str(out_cfg.get("dir_base") or "inside") == "inside" else src_root.parent
+        parent = base / dirname
     else:
         parent = src.parent
 

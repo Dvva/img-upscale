@@ -113,11 +113,18 @@ def test_naming():
     )
     check("单文件同目录", str(p) == r"D:\pics\a_x2.png", p)
 
-    # 目录输入
+    # 目录输入（默认放在源目录内部）
     p = build_output(
         Path(r"D:\pics\set\a.png"), Path(r"D:\pics\set"), True, out_cfg, None, 2, "png"
     )
-    check("目录输入生成同级 _x2", str(p) == r"D:\pics\set_x2\a_x2.png", p)
+    check("目录输入放在源目录内部", str(p) == r"D:\pics\set\set_x2\a_x2.png", p)
+
+    # 目录输入（改成与源目录同级）
+    p = build_output(
+        Path(r"D:\pics\set\a.png"), Path(r"D:\pics\set"), True,
+        {**out_cfg, "dir_base": "parent"}, None, 2, "png",
+    )
+    check("dir_base=parent 时同级", str(p) == r"D:\pics\set_x2\a_x2.png", p)
 
     # 指定 -o
     p = build_output(
@@ -193,7 +200,8 @@ def test_real_dir():
     check("默认走 1 倍", all(t.opts.scale == 1 for t in tasks))
     if tasks:
         first = tasks[0]
-        check("输出目录名带 _x1", "_x1" in str(first.dst), first.dst)
+        check("输出目录在源目录内部", "_x1" in str(first.dst) and str(first.src.parent) in str(first.dst),
+              first.dst)
         check("输出文件名带 _x1", first.dst.stem.endswith("_x1"), first.dst.name)
         check("输出不与源同路径", first.dst != first.src)
         print(f"  样例：{first.src.name}")

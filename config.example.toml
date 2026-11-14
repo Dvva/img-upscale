@@ -91,8 +91,13 @@ suffix = "_x{scale}"
 name_template = "{stem}{suffix}"
 
 # 目录输入时的输出目录名模板，可用 {name}（源目录名）{suffix}
-#   默认 1x-人物 -> 同级 1x-人物_x1\
+#   默认 原图-人物 -> 原图-人物_x1
 dir_template = "{name}{suffix}"
+
+# 目录输入时输出放在哪：
+#   inside  源文件夹内部的子目录（默认） → ...\原图-人物\原图-人物_x1\a_x1.png
+#   parent  与源文件夹同级              → ...\原图-人物_x1\a_x1.png
+dir_base = "inside"
 
 # 输出已存在时：skip 跳过 / overwrite 覆盖 / rename 自动加 -2 后缀
 # 注意：有完成记录时优先按记录判断，这里只管「没有记录但文件已存在」的情况

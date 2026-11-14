@@ -77,6 +77,7 @@ upscale.py INPUT [INPUT...] [选项]
   -t, --tile N       分块大小，显存不足时设 256
   --noise N          降噪档 -1/0/1/2/3（realcugan、waifu2x）
   -o, --output DIR   统一输出目录（目录输入时保留子目录结构）
+  -c, --config PATH  直接用指定的配置文件运行（不读 ~/.config 那份）
   --suffix TEXT      覆盖输出后缀，如 _x1
   -r, --recursive    递归子目录
   -j, --jobs N       并发进程数
@@ -127,8 +128,12 @@ python upscale.py "G:\媒体\图片\__AI 放大\原图-人物" -s 2 --engine rea
 | 场景 | 结果 |
 |---|---|
 | 单文件，无 `-o` | `a.png` → 同目录 `a_x1.png` |
-| 目录，无 `-o` | `...\原图-人物\a.png` → `...\原图-人物_x1\a_x1.png` |
+| 目录，无 `-o` | `...\原图-人物\a.png` → **源目录内部** `...\原图-人物\原图-人物_x1\a_x1.png` |
 | 指定 `-o D:\out` | `D:\out\a_x1.png`；目录输入时保留子目录层级 |
+
+目录模式下输出默认落在**源文件夹内部**的子目录里（`output.dir_base = "inside"`），
+想改成与源文件夹同级（`...\原图-人物_x1\`），把 `dir_base` 改成 `"parent"`。
+递归扫描时会自动跳过这个输出子目录，不会把自己的产物再放大一遍。
 
 后缀由 `[output] suffix = "_x{scale}"` 决定，`{scale}` 是实际倍数。
 想让名字固定带 `_x1`，把 `suffix` 改成 `"_x1"`，或运行时加 `--suffix _x1`。

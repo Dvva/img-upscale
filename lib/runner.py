@@ -14,7 +14,7 @@ from .backends import create_backend
 from .backends.base import Backend, TaskOptions
 from .config import IMAGE_EXTS, Config, expand_path
 from .matcher import match_rule
-from .naming import build_output
+from .naming import build_output, render, suffix_text
 from .state import StateStore
 
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
@@ -152,6 +152,28 @@ def collect_tasks(
     for candidate in (out_cfg.get("dir"), cli_out):
         if candidate:
             exclude.add(os.path.normcase(os.path.abspath(expand_path(str(candidate)))))
+
+    # 输出放在源目录内部时，递归扫描必须跳过这些输出目录，否则会把自己的产物再放大一遍
+    if str(out_cfg.get("dir_base") or "inside") == "inside":
+        scales = {int(cfg.get("default", "scale", 1) or 1)}
+        for rule in cfg.rules:
+            if rule.get("scale") is not None:
+                try:
+                    scales.add(int(rule["scale"]))
+                except (TypeError, ValueError):
+                    pass
+        for raw in inputs:
+            root = Path(expand_path(raw))
+            if not root.is_dir():
+                continue
+            for scale in scales:
+                dirname = render(
+                    str(out_cfg.get("dir_template") or "{name}{suffix}"),
+                    name=root.name,
+                    suffix=suffix_text(out_cfg, scale),
+                    scale=scale,
+                )
+                exclude.add(os.path.normcase(os.path.abspath(str(root / dirname))))
 
     seen: set[str] = set()
     for src, dir_mode, root in iter_inputs(inputs, recursive, exclude):

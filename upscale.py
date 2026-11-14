@@ -71,7 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--suffix", metavar="TEXT", help='输出后缀覆盖，如 _x1（默认随倍数 _x{scale}）')
     p.add_argument("-r", "--recursive", action="store_true", help="递归处理子目录")
     p.add_argument("-j", "--jobs", type=int, help="并发任务数（外部引擎进程，默认 1）")
-    p.add_argument("-c", "--config", metavar="PATH", help="指定配置文件")
+    p.add_argument("-c", "--config", metavar="PATH",
+                   help="直接用指定的配置文件运行（不读 ~/.config/img-upscale.toml）")
     p.add_argument(
         "--on-exists",
         choices=["skip", "overwrite", "rename"],

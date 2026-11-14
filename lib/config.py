@@ -47,6 +47,8 @@ DEFAULTS: dict = {
         "suffix": "_x{scale}",
         "name_template": "{stem}{suffix}",
         "dir_template": "{name}{suffix}",
+        # inside = 输出到源目录内部的子目录（默认）；parent = 与源目录同级
+        "dir_base": "inside",
         "on_exists": "skip",
         "recursive": False,
         "jobs": 1,
