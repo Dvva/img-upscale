@@ -91,8 +91,19 @@ class StateStore:
     def entry(self, src: Path) -> dict | None:
         return self.data["entries"].get(self.key(src))
 
-    def is_done(self, src: Path, opts, backend_name: str, verify_hash: bool = False) -> tuple[bool, str]:
-        """返回 (是否已完成, 原因说明)。"""
+    def is_done(
+        self,
+        src: Path,
+        opts,
+        backend_name: str,
+        verify_hash: bool = False,
+        dst: Path | None = None,
+    ) -> tuple[bool, str]:
+        """返回 (是否已完成, 原因说明)。
+
+        dst 是本次要写的输出路径。传了就要求记录的输出路径与之一致，
+        否则换了 -o / dir_base / 目录模板后会把该做的任务误判成已完成。
+        """
         if not self.enabled:
             return False, "state 已禁用"
         rec = self.entry(src)
@@ -102,6 +113,9 @@ class StateStore:
         out = rec.get("out")
         if not out or not os.path.isfile(out):
             return False, "输出文件已不在"
+        if dst is not None and os.path.normcase(os.path.abspath(str(dst))) != \
+                os.path.normcase(os.path.abspath(str(out))):
+            return False, "输出位置变了"
 
         try:
             sig = file_signature(src)
